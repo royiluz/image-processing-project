@@ -15,18 +15,17 @@ def load_images_from_folder(folder):
 
 
 def auto_canny(image, sigma=0.60):
-    # compute the median of the single channel pixel intensities
     v = np.median(image)
-    # apply automatic Canny edge detection using the computed median
+
+    # Apply automatic Canny edge detection using the computed median
     lower = int(max(0, (1.0 - sigma) * v))
     upper = int(min(255, (1.0 + sigma) * v))
     edged = cv2.Canny(image, lower, upper)
-    # return the edged image
+
     return edged
 
 
 def canny(img_):
-    img_ = cv2.bilateralFilter(img_, 5, 30, 50)
     return auto_canny(img_)
     # return cv2.Canny(img_, 80, 200)
 
@@ -34,7 +33,7 @@ def canny(img_):
 def find_circles(img_):
     right_quarter_col = (img_.shape[1] / 4) * 3
     circles_ = cv2.HoughCircles(img_, cv2.HOUGH_GRADIENT, 1, 40,
-                                param1=50, param2=13, minRadius=5, maxRadius=25)
+                                param1=50, param2=12, minRadius=5, maxRadius=25)
     # Cast to int:
     circles_ = np.uint16(np.around(circles_))[0]
 
@@ -65,6 +64,7 @@ if __name__ == '__main__':
 
     # My images:
     for index, img in enumerate(gray_images):
+        # img = cv2.bilateralFilter(img, 5, 30, 50)
         canny_img = canny(img)
         circles = find_circles(canny_img)
         if len(circles) != 0:
@@ -79,11 +79,13 @@ if __name__ == '__main__':
             # Show image after canny and image with circles
             cv2.imshow('detected top finger', cimg)
             # cv2.imshow('canny', canny_img)
+            # cv2.imshow('bilateral', img)
             cv2.waitKey(0)
             cv2.destroyAllWindows()
 
     # Other images:
     for index, img in enumerate(gray_images2):
+        # img = cv2.bilateralFilter(img, 5, 30, 50)
         canny_img = canny(img)
         circles = find_circles(canny_img)
         if len(circles) != 0:
