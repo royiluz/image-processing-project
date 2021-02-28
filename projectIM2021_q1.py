@@ -30,6 +30,59 @@ def canny(img_):
     # return cv2.Canny(img_, 80, 200)
 
 
+def find_little_finger(circles_):
+    circles_sorted_by_row = circles_[circles_[:, 1].argsort()]
+    little_finger = circles_sorted_by_row[-1]
+    return little_finger
+
+
+def find_thumb(circles_, img_):
+    circles_sorted_by_row = circles_[circles_[:, 1].argsort()]
+    thumb = circles_sorted_by_row[0]
+    if thumb[1] > img_.shape[1] * 0.25:
+        thumb = []
+
+    # thumb = [c_ for c_ in circles_ if c_[1] < img.shape[1] * 0.25]
+    # if len(thumb) == 0:  # Didn't find thumb coordinate
+    #     return []
+    #
+    # if len(thumb) > 1:  # Find many thumb coordinate and get the highest thumb
+    #     highest_thumb = thumb.pop(0)
+    #     for t in thumb:
+    #         if t[1] < highest_thumb[1]:
+    #             highest_thumb = t
+    #     thumb = [highest_thumb]  # Set thumb
+
+    return thumb
+
+
+def get_circles_indices_to_remove(circles_, img_):
+    # Suppose the thumb is in the top quarter of the image:
+    thumb = find_thumb(circles_, img_)
+    if len(thumb) == 0:
+        thumb = [0, 0, 0]
+        print('Didn\'t find thumb')
+
+    little_finger = find_little_finger(circles_)
+    if len(little_finger) == 0:
+        little_finger = [0, 0, 0]
+        print('Didn\'t find little finger')
+
+    # Remove all points that right to little finger except thumb:
+    indices_to_remove = []
+    for ind, c_ in enumerate(circles_):
+        col, row = c_[0], c_[1]
+
+        if col >= little_finger[0] and c_[1] != thumb[1]:
+            indices_to_remove.append(ind)
+            continue
+
+    circles_ = np.delete(circles_, indices_to_remove, 0)
+    circles_ = np.insert(circles_, len(circles_), little_finger, 0)
+
+    return circles_
+
+
 def find_circles(img_):
     right_quarter_col = (img_.shape[1] / 4) * 3
     circles_ = cv2.HoughCircles(img_, cv2.HOUGH_GRADIENT, 1, 40,
@@ -46,13 +99,14 @@ def find_circles(img_):
             indices_to_remove.append(ind)
             continue
 
-        # circle in the middle of the finger:
+        # circle in the middle of the finger or at the beginning:
         left_coordinates_from_center = [img_[row, col - i_] for i_ in range(int(radios * 1.5)) if col - i_ > 0]
         if 255 not in left_coordinates_from_center:
             indices_to_remove.append(ind)
 
     # Delete un-relevant circles:
     circles_ = np.delete(circles_, indices_to_remove, 0)
+    circles_ = get_circles_indices_to_remove(circles_, img_)
 
     return circles_
 
@@ -60,25 +114,25 @@ def find_circles(img_):
 if __name__ == '__main__':
     # load all images:
     gray_images, color_images = load_images_from_folder('images')
-    gray_images2, color_images2 = load_images_from_folder('images2')
+    gray_images2, color_images2 = load_images_from_folder('other_images')
 
     # My images:
     for index, img in enumerate(gray_images):
-        # img = cv2.bilateralFilter(img, 5, 30, 50)
+        img = cv2.bilateralFilter(img, 5, 30, 50)
         canny_img = canny(img)
         circles = find_circles(canny_img)
         if len(circles) != 0:
             cimg = color_images[index]
             for c in circles:
                 # draw the outer circle
-                # cv2.circle(cimg, (c[0], c[1]), c[2], (0, 255, 0), 2)
+                cv2.circle(cimg, (c[0], c[1]), c[2], (0, 255, 0), 2)
 
                 # draw the center of the circle
                 cv2.circle(cimg, (c[0], c[1]), radius=1, color=(0, 0, 255), thickness=4)
 
             # Show image after canny and image with circles
             cv2.imshow('detected top finger', cimg)
-            # cv2.imshow('canny', canny_img)
+            cv2.imshow('canny', canny_img)
             # cv2.imshow('bilateral', img)
             cv2.waitKey(0)
             cv2.destroyAllWindows()
@@ -92,13 +146,13 @@ if __name__ == '__main__':
             cimg = color_images2[index]
             for i in circles:
                 # draw the outer circle
-                # cv2.circle(cimg, (i[0], i[1]), i[2], (0, 255, 0), 2)
+                cv2.circle(cimg, (i[0], i[1]), i[2], (0, 255, 0), 2)
                 # draw the center of the circle
                 cv2.circle(cimg, (i[0], i[1]), radius=1, color=(0, 0, 255), thickness=4)
 
             # Show image after canny and image with circles
             cv2.imshow('detected circles', cimg)
-            # cv2.imshow('canny', canny_img)
+            cv2.imshow('canny', canny_img)
             # cv2.imshow('canny', canny_img)
             cv2.waitKey(0)
             cv2.destroyAllWindows()
