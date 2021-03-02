@@ -14,20 +14,15 @@ def load_images_from_folder(folder):
     return gray_images_, color_images_
 
 
-def auto_canny(image, sigma=0.60):
-    v = np.median(image)
+def canny(img_, sigma=0.60):
+    v = np.median(img_)
 
     # Apply automatic Canny edge detection using the computed median
     lower = int(max(0, (1.0 - sigma) * v))
     upper = int(min(255, (1.0 + sigma) * v))
-    edged = cv2.Canny(image, lower, upper)
+    edged = cv2.Canny(img_, lower, upper)
 
     return edged
-
-
-def canny(img_):
-    return auto_canny(img_)
-    # return cv2.Canny(img_, 80, 200)
 
 
 def find_little_finger(circles_):
@@ -41,17 +36,6 @@ def find_thumb(circles_, img_):
     thumb = circles_sorted_by_row[0]
     if thumb[1] > img_.shape[1] * 0.25:
         thumb = []
-
-    # thumb = [c_ for c_ in circles_ if c_[1] < img.shape[1] * 0.25]
-    # if len(thumb) == 0:  # Didn't find thumb coordinate
-    #     return []
-    #
-    # if len(thumb) > 1:  # Find many thumb coordinate and get the highest thumb
-    #     highest_thumb = thumb.pop(0)
-    #     for t in thumb:
-    #         if t[1] < highest_thumb[1]:
-    #             highest_thumb = t
-    #     thumb = [highest_thumb]  # Set thumb
 
     return thumb
 
@@ -118,7 +102,6 @@ if __name__ == '__main__':
 
     # My images:
     for index, img in enumerate(gray_images):
-        img = cv2.bilateralFilter(img, 5, 30, 50)
         canny_img = canny(img)
         circles = find_circles(canny_img)
         if len(circles) != 0:
@@ -139,7 +122,6 @@ if __name__ == '__main__':
 
     # Other images:
     for index, img in enumerate(gray_images2):
-        # img = cv2.bilateralFilter(img, 5, 30, 50)
         canny_img = canny(img)
         circles = find_circles(canny_img)
         if len(circles) != 0:
